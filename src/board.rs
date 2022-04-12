@@ -1,73 +1,86 @@
+use num_derive::FromPrimitive;
+use num_derive::ToPrimitive;
+use num_traits::FromPrimitive;
+use num_traits::ToPrimitive;
+
+
 // A go board is an array of size (8*ceiling(width/16) * width) bytes coupled with a ko trie. 
 // A row is 32 2-bit tiles packed into a single 8 byte word. 
-
-#[derive(FromPrimitive, ToPrimitive)]
-enum Tile {
-    Empty == 0;
-    Black == 1;
-    White == 2; 
+#[derive(num_derive::FromPrimitive, num_derive::ToPrimitive,Copy,Clone)]
+pub enum Tile {
+    Empty = 0,
+    Black = 1,
+    White = 2, 
 }
-fn display_tile(tile:Tile) -> char {
+pub fn display_tile(tile:Tile) -> char {
     match tile {
-        Empty => '.',
-        Black => 'x',
-        White => 'o',
+        Tile::Empty => '.',
+        Tile::Black => 'x',
+        Tile::White => 'o',
     }
 }
-enum Player {
-    BlackP;
-    WhiteP;
+#[derive(Copy,Clone)]
+pub enum Player {
+    BlackP,
+    WhiteP,
 }
-fn display_player(player:Player) -> &str {
+pub fn display_player(player:Player) -> &'static str {
     match player {
-        BlackP => "BLACK"; 
-        WhiteP => "WHITE";
+        Player::BlackP => "BLACK",
+        Player::WhiteP => "WHITE",
     }
 }
-TILE_MASK:u64 = 3;
-struct Row(u64);
-impl Iterator for (Row,u8) {
+
+const TILE_MASK:u64 = 3; // Selects the last 2 bits of a u64 (a go tile has 3 states, empty, black, or white, 
+// and is thus encoded in 2 bits. 
+#[derive(Copy,Clone)]
+pub struct Row(u64);
+#[derive(Copy,Clone)]
+pub struct RowAnnotate(Row,u8);
+impl Iterator for RowAnnotate {
     type Item = Tile;
-    fn next(&mut self) -> Option <Self::Item> {
-        let (row,size) = *self in
+    fn next(&mut self) -> Option <Self::Item> { // Consumes a row by iteratively taking the last 2 bits and shifting right. 
+        let RowAnnotate(Row(row),size) = *self;
             if size == 0 {
                 None 
             } else {
-                *self = (row>>2, size--);
-                FromPrimitive::from_i64(row & TILE_MASK)
+                *self = RowAnnotate(Row(row>>2), size-1);
+                num_traits::FromPrimitive::from_u64(row & TILE_MASK)
             }
     }
 }
 
-struct Board {
-    rows :: u8;
-    tiles :: Vec<Row>; 
-    ko :: Option<KoTrie>;
-    player :: Player;
-    pass :: bool;
+pub struct Board {
+    rows : u8,
+    tiles : Vec<Row>,
+    ko : Option<KoTrie>,
+    player : Player,
+    pass : bool,
 }
-struct KoTrie {
-    depth :: u16;
-    key :: u8;
-    children :: Vec<Option<KoTrie>>;
+pub struct KoTrie {
+    depth : u16,
+    key : u8,
+    children : Vec<Option<KoTrie>>,
 }
-fn show_board(board:&Board) -> String  {
-    let mut s = String::with_capacity((board.rows + 1) * board.rows +  20);
-    for row in board.tiles  {
-        for tile in (row, board.rows) {
+pub fn show_board(board:&Board) -> String  {
+    let mut s = String::with_capacity(2 * (usize::from(board.rows) + 1) * usize::from(board.rows) +  20);
+    for row in &board.tiles  {
+        for tile in RowAnnotate(*row, board.rows) {
             s.push(display_tile(tile));
+            s.push(' ');
         }
         s.push('\n');
     }
     s.push_str(display_player(board.player));
     s.push_str(" to move.\n");
+    s
 }
-fn init_board(rows:u8) -> {
+pub fn init_board(rows:u8) -> Board {
     Board {
         rows,
-        tiles: vec![0;rows],
+        tiles: vec![Row(0);rows.into()],
         ko : None, // temporary, change later;
-        player : Black,
+        player : Player::BlackP,
         pass : false,
     }
 }
