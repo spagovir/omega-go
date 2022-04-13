@@ -2,7 +2,7 @@ use num_derive::FromPrimitive;
 use num_derive::ToPrimitive;
 use num_traits::FromPrimitive;
 use num_traits::ToPrimitive;
-
+mod ko;
 
 // A go board is an array of size (8*ceiling(width/16) * width) bytes coupled with a ko trie. 
 // A row is 32 2-bit tiles packed into a single 8 byte word. 
@@ -53,14 +53,9 @@ impl Iterator for RowAnnotate {
 pub struct Board {
     rows : u8,
     tiles : Vec<Row>,
-    ko : Option<KoTrie>,
+    ko : Option<ko::KoTrie>,
     player : Player,
     pass : bool,
-}
-pub struct KoTrie {
-    depth : u16,
-    key : u8,
-    children : Vec<Option<KoTrie>>,
 }
 pub fn show_board(board:&Board) -> String  {
     let mut s = String::with_capacity(2 * (usize::from(board.rows) + 1) * usize::from(board.rows) +  20);
